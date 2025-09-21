@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { updateTomlValues } from "@shopify/toml-patch";
 import type { Config } from "../config";
-import { buildPatches, mergeConfig } from "./codex-cli";
+import { buildPatches, mergeConfig, overwriteConfig } from "./codex-cli";
 
 describe("mergeConfig", () => {
   type Case = [title: string, input: string, config: Config, expected: string];
@@ -19,6 +19,7 @@ describe("mergeConfig", () => {
             env: { API_KEY: "value" },
           },
         },
+        templates: {},
       },
       [
         "[mcp_servers.context7]",
@@ -38,6 +39,7 @@ describe("mergeConfig", () => {
         mcpServers: {
           ctx: { command: "npx", args: [], env: {} },
         },
+        templates: {},
       },
       [
         "# header",
@@ -64,6 +66,7 @@ describe("mergeConfig", () => {
         mcpServers: {
           context7: { command: "npx", args: ["-y"], env: {} },
         },
+        templates: {},
       },
       [
         "[mcp_servers.context7]",
@@ -81,6 +84,7 @@ describe("mergeConfig", () => {
         mcpServers: {
           "name.with dot": { command: "new", args: [], env: {} },
         },
+        templates: {},
       },
       [
         '[mcp_servers."name.with dot"]',
@@ -92,7 +96,7 @@ describe("mergeConfig", () => {
     [
       "empty servers results in no change",
       "# nothing\n",
-      { agents: [], mcpServers: {} },
+      { agents: [], mcpServers: {}, templates: {} },
       "# nothing\n",
     ],
   ];
@@ -120,6 +124,7 @@ describe("buildPatches", () => {
             extensions: ["a", "b"],
           },
         },
+        templates: {},
       },
       [
         "[mcp_servers.svc]",
@@ -141,6 +146,7 @@ describe("buildPatches", () => {
             extras: { tokens: 123, flags: { debug: true } },
           },
         },
+        templates: {},
       },
       [
         "[mcp_servers.svc]",
@@ -164,6 +170,7 @@ describe("buildPatches", () => {
         mcpServers: {
           ctx: { command: "new", other: undefined },
         },
+        templates: {},
       },
       ["[mcp_servers.ctx]", 'command = "new"', ""].join("\n"),
     ],
@@ -182,6 +189,7 @@ describe("buildPatches", () => {
         mcpServers: {
           svc: { args: [], env: { A: "x", B: "2" } },
         },
+        templates: {},
       },
       [
         "[mcp_servers.svc]",
@@ -202,6 +210,7 @@ describe("buildPatches", () => {
         mcpServers: {
           "name.with dot": { url: "http://localhost:3333" },
         },
+        templates: {},
       },
       [
         '[mcp_servers."name.with dot"]',
@@ -215,6 +224,7 @@ describe("buildPatches", () => {
       {
         agents: [],
         mcpServers: { only: { url: "http://127.0.0.1:8080" } },
+        templates: {},
       },
       [
         "[mcp_servers.only]",
@@ -229,5 +239,36 @@ describe("buildPatches", () => {
     const patches = buildPatches(cfg);
     const out = updateTomlValues(input, patches);
     expect(out).toEqual(expected);
+  });
+});
+
+describe("overwriteConfig", () => {
+  test("replaces existing servers with provided subset", () => {
+    const input = [
+      "[mcp_servers.remove]",
+      'command = "old"',
+      "",
+      "[mcp_servers.keep]",
+      'command = "stay"',
+      "",
+    ].join("\n");
+    const cfg: Config = {
+      agents: [],
+      mcpServers: {
+        keep: { command: "stay" },
+      },
+      templates: {},
+    };
+    const out = overwriteConfig(input, cfg);
+    expect(out).toEqual(
+      ["[mcp_servers.keep]", 'command = "stay"', ""].join("\n"),
+    );
+  });
+
+  test("removes mcp_servers when selection is empty", () => {
+    const input = ["[mcp_servers.remove]", 'command = "old"', ""].join("\n");
+    const cfg: Config = { agents: [], mcpServers: {}, templates: {} };
+    const out = overwriteConfig(input, cfg);
+    expect(out).toEqual("");
   });
 });

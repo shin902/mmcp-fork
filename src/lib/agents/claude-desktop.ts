@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { Config } from "../config";
-import type { AgentAdapter } from "./adapter";
+import type { AgentAdapter, ApplyConfigOptions } from "./adapter";
 
 export type ClaudeDesktopConfig = {
   mcpServers?: {
@@ -15,9 +15,12 @@ export type ClaudeDesktopConfig = {
 export class ClaudeDesktopAgent implements AgentAdapter {
   readonly id = "claude-desktop" as const;
 
-  applyConfig(config: Config): void {
+  applyConfig(config: Config, options: ApplyConfigOptions = {}): void {
     const agentConfig = this._loadConfig();
-    const next = mergeConfig(agentConfig, config);
+    const next =
+      options.reset === true
+        ? replaceConfig(agentConfig, config)
+        : mergeConfig(agentConfig, config);
     this._saveConfig(next);
   }
 
@@ -66,6 +69,27 @@ export class ClaudeDesktopAgent implements AgentAdapter {
     const content = `${JSON.stringify(config, null, 2)}\n`;
     fs.writeFileSync(pathname, content, "utf-8");
   }
+}
+
+export function replaceConfig(
+  agentConfig: ClaudeDesktopConfig,
+  config: Config,
+): ClaudeDesktopConfig {
+  const entries = Object.entries(config.mcpServers);
+  const next: ClaudeDesktopConfig = { ...agentConfig };
+
+  if (entries.length === 0) {
+    delete next.mcpServers;
+    return next;
+  }
+
+  const servers: Record<string, unknown> = {};
+  for (const [name, server] of entries) {
+    servers[name] = server;
+  }
+
+  next.mcpServers = servers;
+  return next;
 }
 
 export function mergeConfig(

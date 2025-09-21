@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { Config } from "../config";
-import type { AgentAdapter } from "./adapter";
+import type { AgentAdapter, ApplyConfigOptions } from "./adapter";
 
 export type CursorMcpConfig = {
   mcpServers?: {
@@ -15,9 +15,12 @@ export type CursorMcpConfig = {
 export class CursorAgent implements AgentAdapter {
   readonly id = "cursor" as const;
 
-  applyConfig(config: Config): void {
+  applyConfig(config: Config, options: ApplyConfigOptions = {}): void {
     const agentConfig = this._loadConfig();
-    const next = mergeConfig(agentConfig, config);
+    const next =
+      options.reset === true
+        ? replaceConfig(agentConfig, config)
+        : mergeConfig(agentConfig, config);
     this._saveConfig(next);
   }
 
@@ -44,6 +47,28 @@ export class CursorAgent implements AgentAdapter {
     const content = `${JSON.stringify(config, null, 2)}\n`;
     fs.writeFileSync(pathname, content, "utf-8");
   }
+}
+
+export function replaceConfig(
+  agentConfig: CursorMcpConfig,
+  config: Config,
+): CursorMcpConfig {
+  const entries = Object.entries(config.mcpServers);
+  const next: CursorMcpConfig = { ...agentConfig };
+
+  if (entries.length === 0) {
+    delete next.mcpServers;
+    return next;
+  }
+
+  const servers: Record<string, Record<string, unknown>> = {};
+  for (const [name, server] of entries) {
+    const normalized: Record<string, unknown> = { ...server };
+    servers[name] = normalized;
+  }
+
+  next.mcpServers = servers;
+  return next;
 }
 
 export function mergeConfig(

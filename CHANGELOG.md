@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### ⚠️ Breaking Changes
+
+* `mmcp add` コマンドを削除し、`~/.mmcp.json` を直接編集するフローへ移行しました。
+* `mmcp remove` コマンドを削除しました。
+
+### 移行手順
+
+* 既存環境では `mmcp add` の代わりに JSON エディタやスクリプトで `~/.mmcp.json` を編集してください。
+* サーバー定義を削除する場合も `~/.mmcp.json` から該当エントリを削除してください。
+
+
 ## [0.3.2](https://github.com/koki-develop/mmcp/compare/v0.3.1...v0.3.2) (2025-09-09)
 
 

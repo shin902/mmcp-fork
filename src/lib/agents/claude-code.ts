@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { Config } from "../config";
-import type { AgentAdapter } from "./adapter";
+import type { AgentAdapter, ApplyConfigOptions } from "./adapter";
 
 export type ClaudeCodeConfig = {
   mcpServers?: {
@@ -14,9 +14,12 @@ export type ClaudeCodeConfig = {
 export class ClaudeCodeAgent implements AgentAdapter {
   readonly id = "claude-code" as const;
 
-  applyConfig(config: Config): void {
+  applyConfig(config: Config, options: ApplyConfigOptions = {}): void {
     const agentConfig = this._loadConfig();
-    const next = mergeConfig(agentConfig, config);
+    const next =
+      options.reset === true
+        ? replaceConfig(agentConfig, config)
+        : mergeConfig(agentConfig, config);
     this._saveConfig(next);
   }
 
@@ -39,6 +42,27 @@ export class ClaudeCodeAgent implements AgentAdapter {
     const content = `${JSON.stringify(config, null, 2)}\n`;
     fs.writeFileSync(pathname, content, "utf-8");
   }
+}
+
+export function replaceConfig(
+  agentConfig: ClaudeCodeConfig,
+  config: Config,
+): ClaudeCodeConfig {
+  const entries = Object.entries(config.mcpServers);
+  const next: ClaudeCodeConfig = { ...agentConfig };
+
+  if (entries.length === 0) {
+    delete next.mcpServers;
+    return next;
+  }
+
+  const servers: Record<string, unknown> = {};
+  for (const [name, server] of entries) {
+    servers[name] = server;
+  }
+
+  next.mcpServers = servers;
+  return next;
 }
 
 export function mergeConfig(

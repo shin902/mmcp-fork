@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Config } from "../config";
 import type { CursorMcpConfig } from "./cursor";
-import { mergeConfig } from "./cursor";
+import { mergeConfig, replaceConfig } from "./cursor";
 
 describe("mergeConfig (cursor)", () => {
   type Case = [
@@ -24,6 +24,7 @@ describe("mergeConfig (cursor)", () => {
             env: {},
           },
         },
+        templates: {},
       },
       {
         mcpServers: {
@@ -48,6 +49,7 @@ describe("mergeConfig (cursor)", () => {
         mcpServers: {
           ctx: { command: "npx", args: [], env: {} },
         },
+        templates: {},
       },
       {
         theme: "dark",
@@ -75,6 +77,7 @@ describe("mergeConfig (cursor)", () => {
         mcpServers: {
           context7: { command: "npx", args: ["-y"], env: { K: "V" } },
         },
+        templates: {},
       },
       {
         mcpServers: {
@@ -97,6 +100,7 @@ describe("mergeConfig (cursor)", () => {
           "name.with dot": { command: "npx", args: [], env: { K: "V" } },
           "with space": { command: "node", args: ["a.js"], env: {} },
         },
+        templates: {},
       },
       {
         mcpServers: {
@@ -108,7 +112,7 @@ describe("mergeConfig (cursor)", () => {
     [
       "empty mmcp servers results in no change",
       { mcpServers: { keep: { command: "x", args: [], env: {} } } },
-      { agents: [], mcpServers: {} },
+      { agents: [], mcpServers: {}, templates: {} },
       { mcpServers: { keep: { command: "x", args: [], env: {} } } },
     ],
   ];
@@ -116,5 +120,40 @@ describe("mergeConfig (cursor)", () => {
   test.each(cases)("%s", (_title, agentConfig, mmcp, expected) => {
     const out = mergeConfig(structuredClone(agentConfig), mmcp);
     expect(out).toEqual(expected);
+  });
+});
+
+describe("replaceConfig (cursor)", () => {
+  test("replaces existing servers with provided subset", () => {
+    const agentConfig: CursorMcpConfig = {
+      theme: "light",
+      mcpServers: {
+        remove: { command: "old" },
+        keep: { command: "stay" },
+      },
+    };
+    const mmcp: Config = {
+      agents: [],
+      mcpServers: {
+        keep: { command: "stay" },
+      },
+      templates: {},
+    };
+    const out = replaceConfig(structuredClone(agentConfig), mmcp);
+    expect(out).toEqual({
+      theme: "light",
+      mcpServers: {
+        keep: { command: "stay" },
+      },
+    });
+  });
+
+  test("removes mcpServers when selection is empty", () => {
+    const agentConfig: CursorMcpConfig = {
+      mcpServers: { remove: { command: "old" } },
+    };
+    const mmcp: Config = { agents: [], mcpServers: {}, templates: {} };
+    const out = replaceConfig(structuredClone(agentConfig), mmcp);
+    expect(out).toEqual({});
   });
 });

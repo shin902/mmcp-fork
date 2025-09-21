@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Config } from "../config";
 import type { ClaudeCodeConfig } from "./claude-code";
-import { mergeConfig } from "./claude-code";
+import { mergeConfig, replaceConfig } from "./claude-code";
 
 describe("mergeConfig (claude-code)", () => {
   type Case = [
@@ -24,6 +24,7 @@ describe("mergeConfig (claude-code)", () => {
             env: {},
           },
         },
+        templates: {},
       },
       {
         mcpServers: {
@@ -48,6 +49,7 @@ describe("mergeConfig (claude-code)", () => {
         mcpServers: {
           ctx: { command: "npx", args: [], env: {} },
         },
+        templates: {},
       },
       {
         theme: "dark",
@@ -69,6 +71,7 @@ describe("mergeConfig (claude-code)", () => {
         mcpServers: {
           context7: { command: "npx", args: ["-y"], env: {} },
         },
+        templates: {},
       },
       {
         mcpServers: {
@@ -84,6 +87,7 @@ describe("mergeConfig (claude-code)", () => {
         mcpServers: {
           "name.with dot": { command: "npx", args: [], env: { K: "V" } },
         },
+        templates: {},
       },
       {
         mcpServers: {
@@ -96,5 +100,43 @@ describe("mergeConfig (claude-code)", () => {
   test.each(cases)("%s", (_title, agentConfig, mmcp, expected) => {
     const out = mergeConfig(structuredClone(agentConfig), mmcp);
     expect(out).toEqual(expected);
+  });
+});
+
+describe("replaceConfig (claude-code)", () => {
+  test("replaces existing servers with the provided subset", () => {
+    const agentConfig: ClaudeCodeConfig = {
+      theme: "dark",
+      mcpServers: {
+        old: { command: "node", args: ["old.js"], env: {} },
+        keep: { command: "stay", args: [], env: {} },
+      },
+    };
+    const mmcp: Config = {
+      agents: [],
+      mcpServers: {
+        keep: { command: "stay", args: [], env: {} },
+      },
+      templates: {},
+    };
+    const out = replaceConfig(structuredClone(agentConfig), mmcp);
+    expect(out).toEqual({
+      theme: "dark",
+      mcpServers: {
+        keep: { command: "stay", args: [], env: {} },
+      },
+    });
+  });
+
+  test("removes mcpServers when the subset is empty", () => {
+    const agentConfig: ClaudeCodeConfig = {
+      feature: true,
+      mcpServers: {
+        remove: { command: "rm", args: [], env: {} },
+      },
+    };
+    const mmcp: Config = { agents: [], mcpServers: {}, templates: {} };
+    const out = replaceConfig(structuredClone(agentConfig), mmcp);
+    expect(out).toEqual({ feature: true });
   });
 });

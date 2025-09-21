@@ -3,14 +3,17 @@ import os from "node:os";
 import path from "node:path";
 import { updateTomlValues } from "@shopify/toml-patch";
 import type { Config } from "../config";
-import type { AgentAdapter } from "./adapter";
+import type { AgentAdapter, ApplyConfigOptions } from "./adapter";
 
 export class CodexCliAgent implements AgentAdapter {
   readonly id = "codex-cli" as const;
 
-  applyConfig(config: Config): void {
+  applyConfig(config: Config, options: ApplyConfigOptions = {}): void {
     const content = this._loadConfig();
-    const next = mergeConfig(content, config);
+    const next =
+      options.reset === true
+        ? overwriteConfig(content, config)
+        : mergeConfig(content, config);
     this._saveConfig(next);
   }
 
@@ -35,6 +38,15 @@ export class CodexCliAgent implements AgentAdapter {
     }
     fs.writeFileSync(filePath, config, "utf-8");
   }
+}
+
+export function overwriteConfig(content: string, config: Config): string {
+  const cleared = updateTomlValues(content, [[["mcp_servers"], undefined]]);
+  const patches = buildPatches(config);
+  if (patches.length === 0) {
+    return cleared;
+  }
+  return updateTomlValues(cleared, patches);
 }
 
 export function mergeConfig(content: string, config: Config): string {

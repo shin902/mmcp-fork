@@ -14,9 +14,38 @@ export const mcpServerSchema = z
 
 export type MCPServer = z.infer<typeof mcpServerSchema>;
 
+const templateServersSchema = z.array(z.string().min(1));
+
+export const templateSchema = z
+  .object({
+    servers: templateServersSchema.optional(),
+    exclude: templateServersSchema.optional(),
+  })
+  .superRefine((value, ctx) => {
+    const hasServers = value.servers !== undefined;
+    const hasExclude = value.exclude !== undefined;
+    if (!hasServers && !hasExclude) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Template must define either servers or exclude.",
+        path: [],
+      });
+    }
+    if (hasServers && hasExclude) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Template cannot define both servers and exclude.",
+        path: [],
+      });
+    }
+  });
+
+export type TemplateDefinition = z.infer<typeof templateSchema>;
+
 export const configSchema = z.object({
   agents: z.array(z.string().min(1)).default([]),
   mcpServers: z.record(z.string().min(1), mcpServerSchema).default({}),
+  templates: z.record(z.string().min(1), templateSchema).default({}),
 });
 
 export type Config = z.infer<typeof configSchema>;
@@ -35,7 +64,7 @@ export function loadConfig(params: LoadConfigParams): Config {
     if (params.path !== defaultConfigPath()) {
       throw new Error(`Config file not found: ${params.path}`);
     }
-    return { mcpServers: {}, agents: [] };
+    return { mcpServers: {}, agents: [], templates: {} };
   }
 
   const content = fs.readFileSync(params.path, "utf-8");

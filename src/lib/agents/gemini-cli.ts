@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { Config } from "../config";
-import type { AgentAdapter } from "./adapter";
+import type { AgentAdapter, ApplyConfigOptions } from "./adapter";
 
 export type GeminiSettings = {
   mcpServers?: {
@@ -15,9 +15,12 @@ export type GeminiSettings = {
 export class GeminiCliAgent implements AgentAdapter {
   readonly id = "gemini-cli" as const;
 
-  applyConfig(config: Config): void {
+  applyConfig(config: Config, options: ApplyConfigOptions = {}): void {
     const agentConfig = this._loadConfig();
-    const next = mergeConfig(agentConfig, config);
+    const next =
+      options.reset === true
+        ? replaceConfig(agentConfig, config)
+        : mergeConfig(agentConfig, config);
     this._saveConfig(next);
   }
 
@@ -45,6 +48,28 @@ export class GeminiCliAgent implements AgentAdapter {
     const content = `${JSON.stringify(config, null, 2)}\n`;
     fs.writeFileSync(pathname, content, "utf-8");
   }
+}
+
+export function replaceConfig(
+  agentConfig: GeminiSettings,
+  config: Config,
+): GeminiSettings {
+  const entries = Object.entries(config.mcpServers);
+  const next: GeminiSettings = { ...agentConfig };
+
+  if (entries.length === 0) {
+    delete next.mcpServers;
+    return next;
+  }
+
+  const servers: Record<string, Record<string, unknown>> = {};
+  for (const [name, server] of entries) {
+    const normalized: Record<string, unknown> = { ...server };
+    servers[name] = normalized;
+  }
+
+  next.mcpServers = servers;
+  return next;
 }
 
 export function mergeConfig(
