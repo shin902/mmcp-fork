@@ -1,10 +1,12 @@
 import { Argument, Command, CommanderError, Option } from "commander";
 import packageJson from "../package.json" with { type: "json" };
+import { addCommand } from "./commands/add";
 import { agentsAddCommand } from "./commands/agents-add";
 import { agentsListCommand } from "./commands/agents-list";
 import { agentsRemoveCommand } from "./commands/agents-remove";
 import { applyCommand } from "./commands/apply";
 import { listCommand } from "./commands/list";
+import { removeCommand } from "./commands/remove";
 import { supportedAgentIds } from "./lib/agents/registry";
 import { defaultConfigPath } from "./lib/config";
 
@@ -29,6 +31,60 @@ program
   .description(
     "Manage your MCP (Model Context Protocol) server definitions in one place and apply them to supported agents.",
   );
+
+program
+  .command("add")
+  .description("Add a mcp server")
+  .argument("<name>", "Name of the server")
+  .argument("<command>", "Command to start the server")
+  .argument("[args...]", "Arguments for the command")
+  .option("-e, --env <key=value...>", "Environment variables for the server")
+  .option("-c, --config <path>", "Path to config file", defaultConfigPath())
+  .option("-f, --force", "Overwrite if the server already exists", false)
+  .action(
+    (
+      name: string,
+      command: string,
+      args: string[],
+      options: {
+        config: string;
+        force: boolean;
+        env?: string[];
+      },
+    ) => {
+      const env: Record<string, string> = {};
+      for (const item of options.env ?? []) {
+        const [key, value, ...rest] = item.split("=");
+        if (!key || !value || rest.length > 0) {
+          throw new Error(
+            `Invalid --env value: ${JSON.stringify(item)}. Use KEY=VALUE format.`,
+          );
+        }
+        env[key] = value;
+      }
+      addCommand({
+        name,
+        command,
+        args,
+        env,
+        configPath: options.config,
+        force: options.force,
+      });
+    },
+  );
+
+program
+  .command("remove")
+  .alias("rm")
+  .description("Remove a mcp server")
+  .argument("<name>", "Name of the server")
+  .option("-c, --config <path>", "Path to config file", defaultConfigPath())
+  .action((name: string, options: { config: string }) => {
+    removeCommand({
+      name,
+      configPath: options.config,
+    });
+  });
 
 program
   .command("apply")
@@ -114,24 +170,11 @@ agents
 program.parseAsync(process.argv).catch((err) => {
   if (err instanceof CommanderError) {
     if (err.code === "commander.unknownCommand") {
-      const message = err.message;
-      if (message.includes("'add'")) {
+      if (errorBuffer.length > 0) {
+        console.error(errorBuffer.join(""));
         errorBuffer.length = 0;
-        console.error(
-          "mmcp add は削除されました。設定ファイル (~/.mmcp.json) を直接編集してください。",
-        );
-      } else if (message.includes("'remove'")) {
-        errorBuffer.length = 0;
-        console.error(
-          "mmcp remove は削除されました。サーバー定義を削除する場合は ~/.mmcp.json を直接編集してください。",
-        );
       } else {
-        if (errorBuffer.length > 0) {
-          console.error(errorBuffer.join(""));
-          errorBuffer.length = 0;
-        } else {
-          console.error(err.message);
-        }
+        console.error(err.message);
       }
     } else {
       if (errorBuffer.length > 0) {
