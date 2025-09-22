@@ -25,8 +25,12 @@ bun run src/index.ts --help
 ## クイックスタート
 
 ```bash
-# 設定ファイルの作成とエージェントの追加
+# エージェントの追加
 mmcp agents add claude-code claude-desktop
+
+# MCPサーバーの追加
+mmcp add filesystem npx -y @modelcontextprotocol/server-filesystem
+mmcp add brave-search npx -y @modelcontextprotocol/server-brave-search -e BRAVE_API_KEY=your-key
 
 # 現在の設定を確認
 mmcp list
@@ -89,6 +93,56 @@ mmcp apply
 - **`templates`**: フィルタープリセット（`servers`または`exclude`のいずれかを指定）
 
 ## コマンド
+
+### `mmcp add` - サーバー追加
+
+```bash
+mmcp add <name> <command> [args...] [options]
+```
+
+MCPサーバーを設定に追加します。
+
+**引数:**
+- `<name>`: サーバー名
+- `<command>`: 実行コマンド
+- `[args...]`: コマンド引数
+
+**オプション:**
+- `-e, --env <key=value...>`: 環境変数を設定
+- `-f, --force`: 既存サーバーを上書き
+- `-c, --config <path>`: 設定ファイルのパスを指定
+
+**例:**
+```bash
+# 基本的な追加
+mmcp add filesystem npx -y @modelcontextprotocol/server-filesystem
+
+# 環境変数付きで追加
+mmcp add brave-search npx -y @modelcontextprotocol/server-brave-search -e BRAVE_API_KEY=your-key
+
+# 強制上書き
+mmcp add filesystem npx -y @modelcontextprotocol/server-filesystem --force
+```
+
+### `mmcp remove` - サーバー削除
+
+```bash
+mmcp remove <name> [options]
+```
+
+MCPサーバーを設定から削除します。
+
+**引数:**
+- `<name>`: 削除するサーバー名
+
+**オプション:**
+- `-c, --config <path>`: 設定ファイルのパスを指定
+
+**例:**
+```bash
+mmcp remove filesystem
+mmcp rm brave-search  # rmエイリアスも使用可能
+```
 
 ### `mmcp list` - サーバー一覧
 
