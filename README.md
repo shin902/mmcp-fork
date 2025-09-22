@@ -21,7 +21,7 @@ bun install
 
 ### ヘルプを表示
 ```bash
-bun run src/index.ts --help
+mmcp --help
 ```
 
 ## クイックスタート
