@@ -92,7 +92,9 @@ describe("resolveServerFilters", () => {
         template: "dev",
         exclude: ["extra"],
       }),
-    ).toThrowError("Template provides servers, but --exclude is also specified.");
+    ).toThrowError(
+      "Template provides servers, but --exclude is also specified.",
+    );
   });
 
   test("throws when template exclude combines with CLI servers", () => {
@@ -108,7 +110,9 @@ describe("resolveServerFilters", () => {
         template: "minimal",
         servers: ["context7"],
       }),
-    ).toThrowError("Template provides exclude, but --servers is also specified.");
+    ).toThrowError(
+      "Template provides exclude, but --servers is also specified.",
+    );
   });
 });
 
