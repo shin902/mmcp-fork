@@ -28,13 +28,13 @@
   "dependencies": {
     "@shopify/toml-patch": "0.3.0",
     "chalk": "5.6.2",
-    "commander": "14.0.0",
+    "commander": "14.0.1",
     "ora": "8.2.0",
-    "zod": "4.1.5"
+    "zod": "4.1.9"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
-    "@types/bun": "1.2.21",
+    "@types/bun": "1.2.22",
     "husky": "9.1.7",
     "lint-staged": "16.1.6",
     "typescript": "5.9.2"
