@@ -6,6 +6,8 @@
 
 Model Context Protocol (MCP) サーバーを一元管理し、複数のAIエージェントに同期するCLIツールです。
 
+> **📖 詳しい使い方については[こちらの記事](https://zenn.dev/kou_pg_0131/articles/mmcp-introduction)をご覧ください**
+
 ## 概要
 
 mmcpは、MCPサーバーの設定を`~/.mmcp.json`で集中管理し、`mmcp apply`コマンドで対応するAIエージェントの設定ファイルに自動同期します。複数のエージェントでMCPサーバーを統一管理したい場合・MCPサーバーを選択して適用する場合に便利です。
@@ -29,8 +31,8 @@ bun run src/index.ts --help
 mmcp agents add claude-code claude-desktop
 
 # MCPサーバーの追加
-mmcp add filesystem npx -y @modelcontextprotocol/server-filesystem
-mmcp add brave-search npx -y @modelcontextprotocol/server-brave-search -e BRAVE_API_KEY=your-key
+mmcp add -- context7 npx -y @upstash/context7-mcp@latest
+mmcp add -- everything npx -y @modelcontextprotocol/server-everything@latest
 
 # 現在の設定を確認
 mmcp list
@@ -97,7 +99,7 @@ mmcp apply
 ### `mmcp add` - サーバー追加
 
 ```bash
-mmcp add <name> <command> [args...] [options]
+mmcp add [--env KEY=VALUE ...] [--config <path>] [--force] -- <name> <command> [args...]
 ```
 
 MCPサーバーを設定に追加します。
@@ -115,13 +117,14 @@ MCPサーバーを設定に追加します。
 **例:**
 ```bash
 # 基本的な追加
-mmcp add filesystem npx -y @modelcontextprotocol/server-filesystem
+mmcp add -- context7 npx -y @upstash/context7-mcp@latest
+mmcp add -- everything npx -y @modelcontextprotocol/server-everything@latest
 
 # 環境変数付きで追加
-mmcp add brave-search npx -y @modelcontextprotocol/server-brave-search -e BRAVE_API_KEY=your-key
+mmcp add -e BRAVE_API_KEY=your-key -- brave-search npx -y @modelcontextprotocol/server-brave-search
 
 # 強制上書き
-mmcp add filesystem npx -y @modelcontextprotocol/server-filesystem --force
+mmcp add --force -- filesystem npx -y @modelcontextprotocol/server-filesystem
 ```
 
 ### `mmcp remove` - サーバー削除
